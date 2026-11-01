@@ -1,0 +1,5 @@
+node_modules/
+__pycache__/
+informe-mensual/datos/
+informe-mensual/salida/
+informe-mensual/metricas.json

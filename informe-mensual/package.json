@@ -1,0 +1,16 @@
+{
+  "name": "informe-mensual",
+  "version": "1.0.0",
+  "description": "Informe de crédito mensual automático: del export del ERP al PowerPoint",
+  "scripts": {
+    "informe": "python informe.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  },
+  "private": true
+}
