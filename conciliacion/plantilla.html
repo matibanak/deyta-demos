@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conciliación · Distribuidora Papel</title>
+<style>
+  :root { --navy: #1f2a44; --teal: #2a9d8f; --red: #c8553d; --amber: #b7791f; --grey: #6b7280; --line: #e2e5ea; --light: #f3f4f6; --bg: #f7f8fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--navy); font: 14px/1.45 "Segoe UI", Arial, sans-serif; }
+  .num { font-variant-numeric: tabular-nums; }
+  header { background: var(--navy); color: #fff; padding: 14px 28px; display: flex; gap: 14px; align-items: center; }
+  .logo { width: 34px; height: 34px; background: var(--teal); display: grid; place-items: center; font-weight: 700; border-radius: 3px; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  header .sub { color: #aab6c8; font-size: 13px; }
+  main { max-width: 1300px; margin: 0 auto; padding: 22px 28px 40px; display: flex; flex-direction: column; gap: 18px; }
+  .hero { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .big { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .big .pct { font-size: 52px; font-weight: 700; line-height: 1; color: var(--teal); }
+  .bar { height: 10px; border-radius: 5px; background: #f4d9d2; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--teal); }
+  .lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--grey); }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
+  .kpis div { padding: 16px 18px; border-left: 1px solid var(--line); }
+  .kpis div:first-child { border-left: 0; }
+  .kpis b { display: block; font-size: 24px; margin-top: 4px; }
+  .kpis small { color: var(--grey); }
+  .card-h { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .card-h h2 { margin: 0; font-size: 14px; }
+  .card-h span { color: var(--grey); font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { background: var(--light); font-size: 11.5px; color: var(--grey); font-weight: 600; }
+  td.r, th.r { text-align: right; }
+  td.motivo { white-space: normal; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+  .chip.sin { background: #fbe9e5; color: var(--red); }
+  .chip.dif { background: #fdf3e1; color: var(--amber); }
+  .chip.plazo { background: #e8eef8; color: #3b5b8f; }
+  .two { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .regla { padding: 14px 16px; color: var(--grey); font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+  .regla b { color: var(--navy); }
+  footer { color: var(--grey); font-size: 12px; }
+</style>
+</head>
+<body>
+<header><div class="logo">DP</div><div><h1>Conciliación automática · cuenta 5720001</h1><div class="sub" id="sub"></div></div></header>
+<main>
+  <div class="hero">
+    <div class="card big" id="big"></div>
+    <div class="card kpis" id="kpis"></div>
+  </div>
+  <div class="two">
+    <div class="card">
+      <div class="card-h"><h2>Partidas pendientes</h2><span>Lo único que queda para revisar a mano, con el motivo de cada una</span></div>
+      <table id="pend"></table>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="card">
+        <div class="card-h"><h2>Ejemplo de grupo 1:N</h2><span>Un cobro que paga varias facturas</span></div>
+        <table id="ej"></table>
+      </div>
+      <div class="card regla" id="regla"></div>
+    </div>
+  </div>
+  <footer>Datos ficticios · Distribuidora Papel</footer>
+</main>
+<script>
+const D = /*__DATOS__*/null;
+const eur = v => (v < 0 ? "−" : "") + Math.abs(v).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+const pct = Math.round(D.conciliadas / D.total * 100);
+document.getElementById("sub").textContent = `Distribuidora Papel · export de partidas abiertas al 31/10/2026 · ${D.total} partidas en 4 sociedades`;
+document.getElementById("big").innerHTML =
+  `<span class="lbl">Conciliado automáticamente</span><span class="pct num">${pct} %</span>
+   <div class="bar"><span style="width:${pct}%"></span></div>
+   <span class="num">${D.conciliadas} de ${D.total} partidas, sin intervención</span>`;
+document.getElementById("kpis").innerHTML = [
+  ["Grupos 1:1", D.grupos["1:1"], "un cobro, una aplicación"],
+  ["Grupos 1:N", D.grupos["1:N"], "un cobro, varias facturas"],
+  ["Grupos N:1", D.grupos["N:1"], "pagos parciales"],
+  ["Pendientes", D.pendientes, eur(D.importe_pend) + " a revisar"],
+].map(([l, v, s]) => `<div><span class="lbl">${l}</span><b class="num">${v}</b><small>${s}</small></div>`).join("");
+const chip = m => m.startsWith("Sin") ? "sin" : m.startsWith("Diferencia") ? "dif" : "plazo";
+const corto = m => m.startsWith("Sin") ? "Sin contrapartida" : m.startsWith("Diferencia") ? "Diferencia mínima" : "Fuera de plazo";
+document.getElementById("pend").innerHTML =
+  `<tr><th>Soc.</th><th>Doc.</th><th>Fecha</th><th class="r">Importe</th><th>Motivo</th></tr>` +
+  D.pend.map(p => `<tr><td>${p["Sociedad"]}</td><td class="num">${p["Nº documento"]}</td><td class="num">${p["Fecha de documento"]}</td>
+    <td class="r num">${eur(p["Importe en moneda local"])}</td>
+    <td class="motivo"><span class="chip ${chip(p.Motivo)}">${corto(p.Motivo)}</span> ${p.Motivo.startsWith("Sin") ? "" : p.Motivo}</td></tr>`).join("");
+const sumaEj = D.ejemplo.reduce((a, e) => a + e["Importe en moneda local"], 0);
+document.getElementById("ej").innerHTML =
+  `<tr><th>Doc.</th><th>Fecha</th><th class="r">Importe</th></tr>` +
+  D.ejemplo.map(e => `<tr><td class="num">${e["Nº documento"]}<br><small style="color:#6b7280">${e.Texto}</small></td><td class="num">${e["Fecha de documento"]}</td><td class="r num">${eur(e["Importe en moneda local"])}</td></tr>`).join("") +
+  `<tr><td><b>Suma</b></td><td></td><td class="r num"><b>${eur(Math.round(sumaEj * 100) / 100)}</b></td></tr>`;
+document.getElementById("regla").innerHTML =
+  `<span class="lbl">La regla</span>
+   <span>Un grupo se compensa si sus partidas son de la <b>misma sociedad y cuenta</b>, suman <b>exactamente 0</b> al céntimo
+   y están a no más de <b>${D.tol} días hábiles</b> de la principal.</span>
+   <span>Orden de búsqueda: <b>1:1</b>, después <b>1:N</b> y <b>N:1</b> (hasta ${D.max_grupo} partidas). Siempre gana el grupo más chico.</span>`;
+</script>
+</body>
+</html>
