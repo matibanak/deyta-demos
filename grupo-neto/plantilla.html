@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grupo neto · Distribuidora Papel</title>
+<style>
+  :root { --navy: #1f2a44; --teal: #2a9d8f; --red: #c8553d; --green: #3a8d5b; --grey: #6b7280; --line: #e2e5ea; --light: #f3f4f6; --bg: #f7f8fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--navy); font: 14px/1.45 "Segoe UI", Arial, sans-serif; }
+  .num { font-variant-numeric: tabular-nums; }
+  header { background: var(--navy); color: #fff; padding: 14px 28px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .logo { width: 34px; height: 34px; background: var(--teal); display: grid; place-items: center; font-weight: 700; border-radius: 3px; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  header .sub { color: #aab6c8; font-size: 13px; }
+  .spacer { flex: 1; }
+  header select { font: inherit; padding: 6px 10px; border-radius: 6px; border: 0; }
+  main { max-width: 1400px; margin: 0 auto; padding: 22px 28px 40px; display: flex; flex-direction: column; gap: 18px; }
+  .pasos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .paso { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; position: relative; }
+  .paso .lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--grey); }
+  .paso .val { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .paso .det { font-size: 12.5px; color: var(--grey); }
+  .paso.fin { border-left: 4px solid var(--teal); } .paso.fin .val { color: var(--teal); }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .card-h { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .card-h h2 { margin: 0; font-size: 14px; }
+  .card-h span { color: var(--grey); font-size: 12.5px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--light); color: var(--grey); font-size: 11.5px; font-weight: 600; }
+  th:first-child, td:first-child { text-align: left; }
+  td.diag { background: #fafafa; color: #c4c8cf; }
+  .pago { display: grid; grid-template-columns: 110px 26px 110px minmax(0, 1fr) 96px; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+  .pago .bar { height: 8px; border-radius: 4px; background: var(--teal); opacity: .8; }
+  .pago small { color: var(--grey); display: block; font-size: 11.5px; }
+  .pos { padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .pos-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr) 90px; align-items: center; gap: 0; }
+  .pos-row .l, .pos-row .r { height: 18px; display: flex; }
+  .pos-row .l { justify-content: flex-end; border-right: 1px solid #9ca3af; }
+  .pos-row .l i { background: var(--red); height: 100%; display: block; border-radius: 3px 0 0 3px; }
+  .pos-row .r i { background: var(--green); height: 100%; display: block; border-radius: 0 3px 3px 0; }
+  .pos-row b { text-align: right; }
+  .pos-ley { display: flex; justify-content: space-between; color: var(--grey); font-size: 12px; padding: 0 90px 0 110px; }
+  footer { color: var(--grey); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DP</div>
+  <div><h1>Deuda entre sociedades del grupo</h1><div class="sub" id="sub"></div></div>
+  <div class="spacer"></div>
+  <label>Vista al <select id="fecha"></select></label>
+</header>
+<main>
+  <div class="pasos" id="pasos"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h"><h2>Deuda bruta: quién le debe a quién (k€)</h2><span>Filas: deudor · columnas: acreedor</span></div>
+      <table id="matriz"></table>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Después del neteo bilateral</h2><span>Un solo pago por par de sociedades</span></div>
+      <div id="pagos"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h2>Posición neta de cada sociedad contra el grupo</h2><span>Con neteo multilateral, cada una paga o cobra solo este importe</span></div>
+    <div class="pos" id="pos"></div>
+  </div>
+  <footer>Fuente: partidas abiertas de proveedores donde la contraparte es una sociedad del grupo, una foto por día · Datos ficticios.</footer>
+</main>
+<script>
+const D = /*__DATOS__*/null;
+const cods = Object.keys(D.sociedades), nom = c => D.sociedades[c];
+const k = v => Math.round(v / 1000).toLocaleString("de-DE");
+const M = v => (v / 1e6).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M€";
+const fechaTxt = iso => new Date(iso + "T12:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+const sel = document.getElementById("fecha");
+const fechas = Object.keys(D.fotos).sort();
+sel.innerHTML = fechas.map(f => `<option value="${f}">${fechaTxt(f)}</option>`).join("");
+sel.value = fechas[fechas.length - 1];
+sel.onchange = render;
+
+function render() {
+  const F = D.fotos[sel.value];
+  document.getElementById("sub").textContent = `${D.empresa} · ${cods.length} sociedades · foto del ${fechaTxt(sel.value)}`;
+  const red = v => Math.round((1 - v / F.bruto_total) * 100);
+  document.getElementById("pasos").innerHTML = [
+    ["Deuda bruta cruzada", M(F.bruto_total), `${F.relaciones} relaciones de deuda`],
+    ["Con neteo bilateral", M(F.neto_total), `${F.neto.length} pagos · −${red(F.neto_total)} %`],
+    ["Con neteo multilateral", M(F.multilateral_total), `${cods.filter(c => F.posicion[c]).length - 1} pagos contra la holding · −${red(F.multilateral_total)} %`, true],
+  ].map(([l, v, d, fin]) => `<div class="paso ${fin ? "fin" : ""}"><div class="lbl">${l}</div><div class="val num">${v}</div><div class="det">${d}</div></div>`).join("");
+
+  const max = Math.max(...F.matriz.flat());
+  document.getElementById("matriz").innerHTML =
+    `<tr><th>Debe ↓ / a →</th>${cods.map(c => `<th>${nom(c)}</th>`).join("")}<th>Total</th></tr>` +
+    F.matriz.map((fila, i) => `<tr><td><b>${nom(cods[i])}</b></td>${fila.map((v, j) => i === j ? `<td class="diag">—</td>` :
+      `<td class="num" style="background:rgba(200,85,61,${(v / max * .55).toFixed(2)})">${v ? k(v) : "—"}</td>`).join("")}
+      <td class="num"><b>${k(fila.reduce((a, b) => a + b, 0))}</b></td></tr>`).join("");
+
+  const maxN = Math.max(...F.neto.map(n => n.importe));
+  document.getElementById("pagos").innerHTML = F.neto.map(n =>
+    `<div class="pago"><b>${nom(n.deudor)}</b><span>→</span><b>${nom(n.acreedor)}</b>
+      <div><div class="bar" style="width:${(n.importe / maxN * 100).toFixed(1)}%"></div><small>bruto ${k(n.bruto_ida)} ida · ${k(n.bruto_vuelta)} vuelta</small></div>
+      <b class="num" style="text-align:right">${k(n.importe)} k€</b></div>`).join("");
+
+  const maxP = Math.max(...cods.map(c => Math.abs(F.posicion[c])));
+  document.getElementById("pos").innerHTML = `<div class="pos-ley"><span>le debe al grupo</span><span>el grupo le debe</span></div>` +
+    cods.map(c => { const v = F.posicion[c], w = (Math.abs(v) / maxP * 100).toFixed(1);
+      return `<div class="pos-row"><b style="text-align:left">${nom(c)}</b><div class="l">${v < 0 ? `<i style="width:${w}%"></i>` : ""}</div>
+        <div class="r">${v > 0 ? `<i style="width:${w}%"></i>` : ""}</div><b class="num" style="color:${v < 0 ? "#c8553d" : "#3a8d5b"}">${v < 0 ? "−" : "+"}${k(Math.abs(v))} k€</b></div>`; }).join("");
+}
+render();
+</script>
+</body>
+</html>
