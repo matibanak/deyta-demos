@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saldos de tesorería · Distribuidora Papel</title>
+<style>
+  :root {
+    --navy: #1f2a44; --teal: #2a9d8f; --red: #c8553d; --red-bg: #fbe9e5; --green: #3a8d5b;
+    --grey: #6b7280; --light: #f3f4f6; --line: #e2e5ea; --bg: #f7f8fa; --white: #fff;
+    --font: "Segoe UI", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--navy); font: 14px/1.45 var(--font); }
+  .num { font-variant-numeric: tabular-nums; }
+  header { background: var(--navy); color: var(--white); padding: 14px 28px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .logo { width: 34px; height: 34px; background: var(--teal); display: grid; place-items: center; font-weight: 700; border-radius: 3px; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .sub { color: #aab6c8; font-size: 13px; }
+  header .spacer { flex: 1; }
+  .btn { border: 1px solid rgba(255,255,255,.35); color: var(--white); background: none; border-radius: 6px; padding: 7px 14px; font: inherit; cursor: pointer; }
+  .btn:hover { background: rgba(255,255,255,.08); }
+  main { padding: 22px 28px 40px; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+  .alerta { background: var(--red-bg); border-left: 4px solid var(--red); padding: 12px 16px; border-radius: 4px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .alerta b { color: var(--red); }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .kpi { background: var(--white); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+  .kpi .lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--grey); }
+  .kpi .val { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  .kpi .det { font-size: 12.5px; color: var(--grey); }
+  .kpi.mal .val { color: var(--red); }
+
+  .fila { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+  @media (max-width: 1100px) { .fila { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--white); border: 1px solid var(--line); border-radius: 6px; }
+  .card-h { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .card-h h2 { font-size: 14px; margin: 0; }
+  .card-h .hint { color: var(--grey); font-size: 12.5px; }
+  .card-h .spacer { flex: 1; }
+  select { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--white); color: var(--navy); }
+
+  .tabla-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  th { font-size: 11.5px; color: var(--grey); font-weight: 600; background: var(--light); position: sticky; top: 0; }
+  th:first-child, td:first-child { text-align: left; }
+  td.cuenta b { display: block; }
+  td.cuenta span { color: var(--grey); font-size: 12px; }
+  td.v { cursor: pointer; }
+  td.v:hover { outline: 2px solid var(--teal); outline-offset: -2px; }
+  td.v.sel { background: #e3f3f1; outline: 2px solid var(--teal); outline-offset: -2px; }
+  td.neg { color: var(--red); background: var(--red-bg); font-weight: 600; }
+  td.hoy, th.hoy { background: #eef1f6; }
+  tr.sub td { background: var(--light); font-weight: 700; }
+  tr.tot td { background: var(--navy); color: var(--white); font-weight: 700; }
+  tr.tot td.neg { background: var(--red); color: var(--white); }
+
+  .detalle { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .detalle .vacio { color: var(--grey); }
+  .mov { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+  .mov small { display: block; color: var(--grey); }
+  .mov .pos { color: var(--green); font-weight: 600; }
+  .mov .neg { color: var(--red); font-weight: 600; }
+  .grafico { padding: 8px 12px 4px; }
+  footer { color: var(--grey); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DP</div>
+  <div><h1>Saldos de tesorería</h1><div class="sub" id="sub"></div></div>
+  <div class="spacer"></div>
+  <button class="btn" type="button" title="En la versión real vuelve a leer los ficheros del día y recalcula todo">⟳ Actualizar datos</button>
+</header>
+<main>
+  <div id="alertas"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="fila">
+    <div class="card">
+      <div class="card-h">
+        <h2>Saldo proyectado por cuenta</h2>
+        <span class="hint">Clic en un saldo para ver los movimientos de ese día</span>
+        <span class="spacer"></span>
+        <label>Filial <select id="f-filial"></select></label>
+        <label>Banco <select id="f-banco"></select></label>
+      </div>
+      <div class="tabla-wrap"><table id="tabla"></table></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="card">
+        <div class="card-h"><h2 id="det-t">Movimientos del día</h2></div>
+        <div class="detalle" id="detalle"><span class="vacio">Elegí un saldo en la tabla.</span></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Saldo del grupo, próximos 10 días</h2></div>
+        <div class="grafico" id="grafico"></div>
+      </div>
+    </div>
+  </div>
+  <footer id="pie"></footer>
+</main>
+<script>
+const D = /*__DATOS__*/null;
+const k = v => (v < 0 ? "−" : "") + Math.round(Math.abs(v) / 1000).toLocaleString("de-DE") + " k€";
+const eur = v => (v < 0 ? "−" : "+") + Math.abs(v).toLocaleString("de-DE") + " €";
+const fecha = iso => { const [y, m, d] = iso.split("-"); return `${d}/${m}`; };
+const diaLargo = iso => new Date(iso + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "numeric" });
+const N = D.fechas.length;
+const suma = cs => D.fechas.map((_, i) => cs.reduce((a, c) => a + c.proyeccion[i], 0));
+
+const gen = new Date(D.generado);
+document.getElementById("sub").textContent =
+  `${D.empresa} · actualizado el ${gen.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} a las ${gen.toTimeString().slice(0, 5)}`;
+document.getElementById("pie").textContent =
+  `Fuentes: saldos bancarios del día y cobros/pagos previstos (fecha valor banco). ${D.cuentas.length} cuentas · Datos ficticios.`;
+
+// ---- alertas y KPIs ----
+document.getElementById("alertas").innerHTML = D.alertas.map(a =>
+  `<div class="alerta"><b>⚠ ${a.cuenta}</b><span>${a.filial} · ${a.banco} entra en negativo el <b>${diaLargo(a.fecha)}</b>` +
+  (a.fecha_minimo === a.fecha ? ` (<b>${k(a.minimo)}</b>)` : ` y llega a <b>${k(a.minimo)}</b> el ${diaLargo(a.fecha_minimo)}`) +
+  `. Hace falta cubrirla antes con un traspaso entre cuentas o una línea de crédito.</span></div>`).join("");
+
+const tot = suma(D.cuentas);
+const movTot = cond => D.cuentas.flatMap(c => Object.values(c.detalle).flat()).map(m => m.Importe).filter(cond).reduce((a, b) => a + b, 0);
+const iMin = tot.indexOf(Math.min(...tot));
+document.getElementById("kpis").innerHTML = [
+  ["Saldo de apertura", k(D.cuentas.reduce((a, c) => a + c.saldo_inicial, 0)), `${D.cuentas.length} cuentas en ${new Set(D.cuentas.map(c => c.banco)).size} bancos`],
+  ["Cobros previstos", k(movTot(m => m > 0)), `próximos ${N} días hábiles`],
+  ["Pagos previstos", k(movTot(m => m < 0)), `saldo al ${fecha(D.fechas[N - 1])}: ${k(tot[N - 1])}`],
+  ["Cuentas en negativo", String(D.alertas.length), D.alertas.length ? D.alertas.map(a => a.cuenta).join(", ") : "Ninguna en los próximos 10 días", D.alertas.length > 0],
+].map(([l, v, d, mal]) => `<div class="kpi${mal ? " mal" : ""}"><div class="lbl">${l}</div><div class="val num">${v}</div><div class="det">${d}</div></div>`).join("");
+
+// ---- filtros ----
+const filiales = [...new Set(D.cuentas.map(c => c.filial))], bancos = [...new Set(D.cuentas.map(c => c.banco))].sort();
+const opts = (el, xs) => { el.innerHTML = `<option value="">Todas</option>` + xs.map(x => `<option>${x}</option>`).join(""); el.onchange = render; };
+opts(document.getElementById("f-filial"), filiales);
+opts(document.getElementById("f-banco"), bancos);
+
+// ---- tabla ----
+let sel = null;
+function celdas(vals, clic) {
+  return vals.map((v, i) => `<td class="num ${clic ? "v" : ""} ${v < 0 ? "neg" : ""} ${i === 0 ? "hoy" : ""}" ${clic ? `data-c="${clic}" data-i="${i}"` : ""}>${k(v)}</td>`).join("");
+}
+function render() {
+  const ff = document.getElementById("f-filial").value, fb = document.getElementById("f-banco").value;
+  const cs = D.cuentas.filter(c => (!ff || c.filial === ff) && (!fb || c.banco === fb));
+  let h = `<tr><th>Cuenta</th>${D.etiquetas.map((e, i) => `<th class="${i === 0 ? "hoy" : ""}">${i === 0 ? "Hoy" : e}</th>`).join("")}</tr>`;
+  for (const f of filiales) {
+    const grupo = cs.filter(c => c.filial === f);
+    if (!grupo.length) continue;
+    for (const c of grupo)
+      h += `<tr><td class="cuenta"><b>${c.cuenta}</b><span>${c.banco}</span></td>${celdas(c.proyeccion, c.cuenta)}</tr>`;
+    h += `<tr class="sub"><td>${f}</td>${celdas(suma(grupo))}</tr>`;
+  }
+  h += `<tr class="tot"><td>Total</td>${celdas(suma(cs))}</tr>`;
+  const t = document.getElementById("tabla");
+  t.innerHTML = h;
+  t.querySelectorAll("td.v").forEach(td => td.onclick = () => detalle(td.dataset.c, +td.dataset.i));
+  if (sel) { const td = t.querySelector(`td[data-c="${sel[0]}"][data-i="${sel[1]}"]`); if (td) td.classList.add("sel"); }
+}
+function detalle(cuenta, i) {
+  sel = [cuenta, i];
+  render();
+  const c = D.cuentas.find(x => x.cuenta === cuenta), f = D.fechas[i];
+  const movs = c.detalle[f] || [];
+  document.getElementById("det-t").textContent = `${cuenta} · ${diaLargo(f)}`;
+  const previo = i === 0 ? c.saldo_inicial : c.proyeccion[i - 1];
+  document.getElementById("detalle").innerHTML =
+    `<div class="mov"><span>${i === 0 ? "Saldo de apertura" : "Saldo del día anterior"}</span><span class="num">${k(i === 0 ? c.saldo_inicial : previo)}</span></div>` +
+    (movs.length ? movs.map(m => `<div class="mov"><span>${m.Concepto}<small>${m.Tipo}</small></span><span class="num ${m.Importe < 0 ? "neg" : "pos"}">${eur(m.Importe)}</span></div>`).join("")
+                 : `<span class="vacio">Sin movimientos previstos este día.</span>`) +
+    `<div class="mov" style="border:0"><b>Saldo al cierre</b><b class="num ${c.proyeccion[i] < 0 ? "neg" : ""}">${k(c.proyeccion[i])}</b></div>`;
+}
+
+// ---- gráfico (SVG simple) ----
+(function grafico() {
+  const W = 316, H = 170, P = { l: 44, r: 8, t: 10, b: 24 };
+  const vals = tot, max = Math.max(...vals) * 1.08, min = Math.min(0, ...vals);
+  const x = i => P.l + i * (W - P.l - P.r) / (N - 1), y = v => P.t + (max - v) * (H - P.t - P.b) / (max - min);
+  const pasos = 4, ticks = [...Array(pasos + 1)].map((_, i) => min + (max - min) * i / pasos);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Saldo total proyectado">`;
+  s += ticks.map(t => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(t)}" y2="${y(t)}" stroke="#e5e7eb"/><text x="${P.l - 6}" y="${y(t) + 4}" font-size="10" text-anchor="end" fill="#6b7280">${(t / 1e6).toFixed(1).replace(".", ",")} M</text>`).join("");
+  s += `<polyline fill="none" stroke="#1f2a44" stroke-width="2.2" points="${vals.map((v, i) => `${x(i)},${y(v)}`).join(" ")}"/>`;
+  s += vals.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="${i === iMin ? 4.5 : 2.5}" fill="${i === iMin ? "#c8553d" : "#1f2a44"}"/>`).join("");
+  s += [0, Math.floor((N - 1) / 2), N - 1].map(i => `<text x="${x(i)}" y="${H - 6}" font-size="10" text-anchor="${i === 0 ? "start" : i === N - 1 ? "end" : "middle"}" fill="#6b7280">${fecha(D.fechas[i])}</text>`).join("");
+  document.getElementById("grafico").innerHTML = s + "</svg>";
+})();
+
+render();
+const a = D.alertas[0];
+if (a) detalle(a.cuenta, D.fechas.indexOf(a.fecha_minimo));
+</script>
+</body>
+</html>

@@ -7,8 +7,9 @@ Cada carpeta es un proyecto independiente, con su propio README. **El código es
 | Proyecto | Qué resuelve |
 |---|---|
 | [informe-mensual](informe-mensual) | El informe de crédito del mes, del export del ERP al PowerPoint con un comando. |
+| [saldos-tesoreria](saldos-tesoreria) | El saldo de cada banco proyectado a 10 días, con alerta cuando una cuenta va a quedar en negativo. |
 
-Próximamente: saldos de tesorería diarios, forecast de caja a 13 semanas, conciliación automática de partidas, deuda entre sociedades del grupo y un "cerebro" de tesorería.
+Próximamente: forecast de caja a 13 semanas, conciliación automática de partidas, deuda entre sociedades del grupo y un "cerebro" de tesorería.
 
 ---
 
