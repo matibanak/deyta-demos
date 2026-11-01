@@ -26,7 +26,7 @@ Y en unos segundos aparece el PowerPoint del mes, con gráficos editables y **la
 
 1. **Exportaciones.** Cada cierre de mes, el ERP entrega las partidas abiertas de clientes (`cobrables_AAAA-MM.xlsx`) y la facturación. Acá las genera `generar_datos.py` con una semilla fija.
 2. **Cálculo** (`calcular.py`, pandas). Para los últimos 13 meses y cada filial: cobrable, vencido, % vencido, DSO por *count-back* y antigüedad de la deuda por cliente (1-30, 31-60, 61-90, +90 días).
-3. **Notas del mes.** Las frases de "Lo que cambió este mes" no las escribe nadie: salen de comparar cada filial contra su objetivo y contra el mes anterior.
+3. **Títulos y notas del mes.** Cada slide lleva como título su conclusión ("Bélgica concentra el 58 % del vencido del grupo"), y las frases de "Lo que cambió este mes" no las escribe nadie: salen de comparar cada filial contra su objetivo y contra el mes anterior.
 4. **PowerPoint** (`generar_informe.js`, pptxgenjs). Cinco slides con el estilo de la empresa: portada, resumen, vencido por filial, DSO por filial y clientes.
 5. **Imágenes** (`exportar_png.ps1`). Usa PowerPoint para exportar cada slide a PNG, útil para mandar por mail o chat.
 

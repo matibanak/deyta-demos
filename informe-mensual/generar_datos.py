@@ -27,6 +27,7 @@ FILIALES = {
 }
 OBJETIVOS = {  # % vencido máx., DSO máx. (días)
     "Alemania": (8.0, 67), "Países Bajos": (8.0, 67), "Bélgica": (8.0, 68), "Austria": (7.5, 66),
+    "Grupo": (8.0, 67),
 }
 PLAZO = 60  # días de pago pactados
 

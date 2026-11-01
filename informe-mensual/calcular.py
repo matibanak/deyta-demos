@@ -44,17 +44,18 @@ def dso(cobrable, fact_por_mes, periodo):
     return round(dias, 1)
 
 
+# Formato español, con espacio duro entre número y unidad (así no se cortan de línea).
 def k(v):
-    """Importe en miles con separador español: 231952 -> '232 k€'."""
-    return f"{v / 1e3:,.0f} k€".replace(",", ".")
+    """231952 -> '232 k€'"""
+    return f"{v / 1e3:,.0f} k€".replace(",", ".")
 
 
-def pct(v):
-    return f"{v:.1f} %".replace(".", ",")
+def pct(v, d=1):
+    return f"{v:.{d}f} %".replace(".", ",")
 
 
 def dias(v):
-    return f"{v:.1f} días".replace(".", ",")
+    return f"{v:.1f} días".replace(".", ",")
 
 
 def tramo(dias):
@@ -78,7 +79,7 @@ def main():
     fac = pd.read_excel(os.path.join(DATOS, "facturacion.xlsx"))
     fac["Periodo"] = pd.to_datetime(fac["Fecha factura"]).dt.to_period("M")
     obj = pd.read_excel(os.path.join(DATOS, "objetivos.xlsx")).set_index("Filial")
-    filiales = list(obj.index)
+    filiales = [f for f in obj.index if f != "Grupo"]
 
     # ---- Serie mensual por filial y total ----
     serie = {f: [] for f in filiales + ["Total"]}
@@ -101,10 +102,7 @@ def main():
             })
 
     def objetivo(f, col):
-        if f == "Total":  # objetivo del grupo = promedio ponderado por cobrable
-            pesos = {x: serie[x][-1]["cobrable"] for x in filiales}
-            return round(sum(obj.loc[x, col] * w for x, w in pesos.items()) / sum(pesos.values()), 1)
-        return float(obj.loc[f, col])
+        return float(obj.loc["Grupo" if f == "Total" else f, col])
 
     resumen = {}
     for f in filiales + ["Total"]:
@@ -149,9 +147,34 @@ def main():
         notas.append(f"{', '.join(ok[:-1]) + ' y ' + ok[-1] if len(ok) > 1 else ok[0]} "
                      f"cumple{'n' if len(ok) > 1 else ''} ambos objetivos (vencido y DSO).")
     sube = max(clientes, key=lambda c: c["vencido"] - c["vencido_ant"])
-    if sube["vencido"] - sube["vencido_ant"] > 0:
+    if sube["vencido"] - sube["vencido_ant"] >= 20_000:
         notas.append(f"Mayor aumento del mes: {sube['cliente']} ({sube['filial']}), "
                      f"+{k(sube['vencido'] - sube['vencido_ant'])} de vencido.")
+
+    # ---- Títulos de cada slide: la conclusión, no el tema ----
+    if tot["cumple_pct"] and tot["cumple_dso"]:
+        t_resumen = "El grupo cierra el mes dentro de sus objetivos de vencido y DSO"
+    elif tot["cumple_pct"]:
+        t_resumen = f"El vencido está en objetivo, pero el DSO sube a {dias(tot['dso'])}"
+    elif tot["cumple_dso"]:
+        t_resumen = f"El DSO está en objetivo, pero el vencido llega al {pct(tot['pct_vencido'])}"
+    else:
+        t_resumen = "El grupo queda fuera de objetivo en vencido y DSO"
+    mayor = max(filiales, key=lambda f: resumen[f]["vencido"])
+    peso = resumen[mayor]["vencido"] / tot["vencido"] * 100 if tot["vencido"] else 0
+    t_filiales = (f"{mayor} concentra el {pct(peso, 0)} del vencido del grupo" if peso >= 40
+                  else "El vencido se reparte entre las filiales, sin un foco dominante")
+    fuera_dso = [f for f in filiales if not resumen[f]["cumple_dso"]]
+    if fuera_dso:
+        f = max(fuera_dso, key=lambda x: resumen[x]["dso"] - resumen[x]["dso_obj"])
+        antes = serie[f][-5]
+        desde = MESES_LARGOS[MESES.index(antes["mes"][:3])]
+        t_dso = f"{f}: el DSO pasa de {antes['dso']:.0f} a {resumen[f]['dso']:.0f} días desde {desde}"
+    else:
+        t_dso = "Las cuatro filiales cobran dentro del plazo objetivo"
+    top = clientes[0]
+    t_clientes = f"Un cliente, {top['cliente']}, explica el {pct(top['vencido'] / tot['vencido'] * 100, 0)} del vencido"
+    titulos = {"resumen": t_resumen, "filiales": t_filiales, "dso": t_dso, "clientes": t_clientes}
 
     out = {
         "empresa": "Distribuidora Papel",
@@ -160,7 +183,7 @@ def main():
         "generado": dt.date.today().isoformat(),
         "fuentes": len(periodos) + 2,
         "filiales": filiales, "serie": serie, "resumen": resumen,
-        "clientes": clientes, "notas": notas,
+        "clientes": clientes, "notas": notas, "titulos": titulos,
     }
     with open(os.path.join(BASE, "metricas.json"), "w", encoding="utf-8") as fh:
         json.dump(out, fh, ensure_ascii=False, indent=1)
