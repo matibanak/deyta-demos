@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forecast de caja · Distribuidora Papel</title>
+<style>
+  :root { --navy: #1f2a44; --teal: #2a9d8f; --red: #c8553d; --green: #3a8d5b; --grey: #6b7280; --line: #e2e5ea; --light: #f3f4f6; --bg: #f7f8fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--navy); font: 14px/1.45 "Segoe UI", Arial, sans-serif; }
+  .num { font-variant-numeric: tabular-nums; }
+  header { background: var(--navy); color: #fff; padding: 14px 28px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .logo { width: 34px; height: 34px; background: var(--teal); display: grid; place-items: center; font-weight: 700; border-radius: 3px; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  header .sub { color: #aab6c8; font-size: 13px; }
+  .spacer { flex: 1; }
+  .toggle { display: inline-flex; border: 1px solid rgba(255,255,255,.35); border-radius: 7px; overflow: hidden; }
+  .toggle button { font: inherit; color: #fff; background: none; border: 0; padding: 7px 14px; cursor: pointer; }
+  .toggle button.on { background: #fff; color: var(--navy); font-weight: 600; }
+  main { max-width: 1400px; margin: 0 auto; padding: 22px 28px 40px; display: flex; flex-direction: column; gap: 18px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .kpi { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+  .kpi .lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--grey); }
+  .kpi .val { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  .kpi .det { font-size: 12.5px; color: var(--grey); }
+  .kpi.mal { border-left: 4px solid var(--red); } .kpi.mal .val { color: var(--red); }
+  .kpi.bien { border-left: 4px solid var(--green); }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .card-h { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+  .card-h h2 { margin: 0; font-size: 14px; }
+  .card-h span { color: var(--grey); font-size: 12.5px; }
+  .ley { display: inline-flex; align-items: center; gap: 6px; }
+  .ley i { width: 12px; height: 12px; display: inline-block; border-radius: 2px; }
+  #chart { padding: 10px 14px 4px; }
+  .tabla-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 7px 9px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--light); color: var(--grey); font-size: 11.5px; font-weight: 600; }
+  th:first-child, td:first-child { text-align: left; }
+  th small { display: block; font-weight: 400; }
+  td.pos { color: var(--green); } td.neg { color: var(--red); }
+  tr.neto td { font-weight: 700; background: var(--light); }
+  tr.saldo td { font-weight: 700; background: var(--navy); color: #fff; }
+  tr.saldo td.bajo { background: var(--red); }
+  footer { color: var(--grey); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DP</div>
+  <div><h1>Forecast de caja · 13 semanas</h1><div class="sub" id="sub"></div></div>
+  <div class="spacer"></div>
+  <div class="toggle" role="group" aria-label="Escenario">
+    <button type="button" data-e="base" class="on">Escenario base</button>
+    <button type="button" data-e="sin_cliente" id="b-sin"></button>
+  </div>
+</header>
+<main>
+  <div class="kpis" id="kpis"></div>
+  <div class="card">
+    <div class="card-h"><h2>Cobros, pagos y saldo por semana</h2>
+      <span class="ley"><i style="background:#3a8d5b"></i>Cobros</span><span class="ley"><i style="background:#c8553d"></i>Pagos</span>
+      <span class="ley"><i style="background:#1f2a44;height:3px"></i>Saldo</span><span class="ley"><i style="border-top:2px dashed #b7791f;height:0"></i>Colchón mínimo</span></div>
+    <div id="chart"></div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h2>Detalle por concepto (k€)</h2><span>Los cobros de clientes van en la fecha en que cada uno suele pagar, no en el vencimiento</span></div>
+    <div class="tabla-wrap"><table id="tabla"></table></div>
+  </div>
+  <footer>Fuentes: saldos bancarios del día, facturas abiertas de clientes con su atraso histórico, ventas presupuestadas, ageing de proveedores y compromisos fijos · Datos ficticios.</footer>
+</main>
+<script>
+const D = /*__DATOS__*/null;
+const k = v => (v < 0 ? "−" : "") + Math.round(Math.abs(v) / 1000).toLocaleString("de-DE");
+const M = v => (v < 0 ? "−" : "") + (Math.abs(v) / 1e6).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M€";
+const fecha = iso => iso.slice(8, 10) + "/" + iso.slice(5, 7);
+document.getElementById("sub").textContent = `${D.empresa} · desde el lunes ${fecha(D.desde[0])}/2026 hasta la semana del ${fecha(D.desde[12])}/2027`;
+document.getElementById("b-sin").textContent = `Si ${D.cliente_escenario} no paga`;
+let actual = "base";
+
+function render() {
+  const E = D.escenarios[actual], N = E.saldo.length;
+  const iMin = E.saldo.indexOf(Math.min(...E.saldo));
+  const bajo = E.saldo.map((s, i) => s < D.colchon ? i : -1).filter(i => i >= 0);
+  const esCobro = f => f.concepto.startsWith("Cobros");
+  const cobros = E.saldo.map((_, i) => E.filas.filter(esCobro).reduce((a, f) => a + f.valores[i], 0));
+  const pagos = E.neto.map((n, i) => n - cobros[i]);
+  document.getElementById("kpis").innerHTML = [
+    ["Saldo inicial", M(D.saldo_inicial), "todas las cuentas, hoy"],
+    ["Saldo mínimo", M(E.saldo[iMin]), `semana ${iMin + 1} (del ${fecha(D.desde[iMin])})`, E.saldo[iMin] < D.colchon],
+    ["Semanas bajo el colchón", String(bajo.length), bajo.length ? `colchón de ${M(D.colchon)} · ${bajo.map(i => "S" + (i + 1)).join(", ")}` : `colchón de ${M(D.colchon)}: siempre por encima`, bajo.length > 0],
+    ["Cobros previstos", M(cobros.reduce((a, b) => a + b, 0)), "13 semanas"],
+  ].map(([l, v, d, mal]) => `<div class="kpi ${mal === true ? "mal" : mal === false ? "bien" : ""}"><div class="lbl">${l}</div><div class="val num">${v}</div><div class="det">${d}</div></div>`).join("");
+
+  // gráfico: barras de cobros (arriba) y pagos (abajo), línea de saldo y colchón
+  const W = 1300, H = 300, P = { l: 56, r: 12, t: 22, b: 30 };
+  const top = Math.max(...cobros, ...E.saldo, D.saldo_inicial) * 1.08, bot = Math.min(0, ...pagos, ...E.saldo) * 1.08;
+  const y = v => P.t + (top - v) * (H - P.t - P.b) / (top - bot);
+  const bw = (W - P.l - P.r) / N, x = i => P.l + bw * i + bw / 2;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Cobros, pagos y saldo por semana">`;
+  for (let t = Math.ceil(bot / 1e6); t <= Math.floor(top / 1e6); t++)
+    s += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(t * 1e6)}" y2="${y(t * 1e6)}" stroke="${t === 0 ? "#9ca3af" : "#eceef1"}"/><text x="${P.l - 8}" y="${y(t * 1e6) + 4}" text-anchor="end" font-size="11" fill="#6b7280">${t} M</text>`;
+  cobros.forEach((c, i) => s += `<rect x="${x(i) - bw * .3}" y="${y(c)}" width="${bw * .28}" height="${y(0) - y(c)}" fill="#3a8d5b" opacity=".85"/>`);
+  pagos.forEach((p, i) => s += `<rect x="${x(i) + bw * .02}" y="${y(0)}" width="${bw * .28}" height="${y(p) - y(0)}" fill="#c8553d" opacity=".85"/>`);
+  s += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(D.colchon)}" y2="${y(D.colchon)}" stroke="#b7791f" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+  s += `<polyline fill="none" stroke="#1f2a44" stroke-width="2.6" points="${E.saldo.map((v, i) => `${x(i)},${y(v)}`).join(" ")}"/>`;
+  E.saldo.forEach((v, i) => s += `<circle cx="${x(i)}" cy="${y(v)}" r="${i === iMin ? 5.5 : 3.5}" fill="${v < D.colchon ? "#c8553d" : "#1f2a44"}"/>`);
+  s += `<text x="${Math.min(x(iMin), W - P.r - 40)}" y="${y(E.saldo[iMin]) - 12}" text-anchor="middle" font-size="12" font-weight="700" fill="${E.saldo[iMin] < D.colchon ? "#c8553d" : "#1f2a44"}">${M(E.saldo[iMin])}</text>`;
+  D.desde.forEach((d, i) => s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7280">S${i + 1} · ${fecha(d)}</text>`);
+  document.getElementById("chart").innerHTML = s + "</svg>";
+
+  // tabla
+  const celda = v => `<td class="num ${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v ? k(v) : "—"}</td>`;
+  let h = `<tr><th>Concepto</th>${D.desde.map((d, i) => `<th>S${i + 1}<small>${fecha(d)}</small></th>`).join("")}</tr>`;
+  E.filas.forEach(f => h += `<tr><td>${f.concepto}</td>${f.valores.map(celda).join("")}</tr>`);
+  h += `<tr class="neto"><td>Flujo neto</td>${E.neto.map(celda).join("")}</tr>`;
+  h += `<tr class="saldo"><td>Saldo al cierre</td>${E.saldo.map(v => `<td class="num ${v < D.colchon ? "bajo" : ""}">${k(v)}</td>`).join("")}</tr>`;
+  document.getElementById("tabla").innerHTML = h;
+}
+document.querySelectorAll(".toggle button").forEach(b => b.onclick = () => {
+  actual = b.dataset.e;
+  document.querySelectorAll(".toggle button").forEach(x => x.classList.toggle("on", x === b));
+  render();
+});
+// ?escenario=sin_cliente abre directo el escenario alternativo (útil para capturas)
+if (new URLSearchParams(location.search).get("escenario") === "sin_cliente") document.getElementById("b-sin").click();
+else render();
+</script>
+</body>
+</html>

@@ -6,12 +6,13 @@ Cada carpeta es un proyecto independiente, con su propio README. **El código es
 
 | Proyecto | Qué resuelve |
 |---|---|
+| [forecast-caja](forecast-caja) | Forecast de caja a 13 semanas, con cobros en la fecha en que cada cliente paga de verdad y escenarios. |
 | [informe-mensual](informe-mensual) | El informe de crédito del mes, del export del ERP al PowerPoint con un comando. |
 | [conciliacion](conciliacion) | Empareja partidas abiertas (1:1, 1:N, N:1) y explica por qué no cuadra cada pendiente. |
 | [powerbi-creditos](powerbi-creditos) | Excel de carga con datos ficticios para un dashboard de créditos en Power BI. |
 | [saldos-tesoreria](saldos-tesoreria) | El saldo de cada banco proyectado a 10 días, con alerta cuando una cuenta va a quedar en negativo. |
 
-Próximamente: forecast de caja a 13 semanas, deuda entre sociedades del grupo y un "cerebro" de tesorería.
+Próximamente: deuda entre sociedades del grupo y un "cerebro" de tesorería.
 
 ---
 
